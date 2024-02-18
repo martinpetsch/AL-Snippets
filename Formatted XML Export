@@ -1,0 +1,33 @@
+//tldr: create a nicely formatted xml-file from native xmldoc
+
+procedure ExportFormattedXML(XmlDoc : XmlDocument)
+    var    
+        OutStr: outstream;
+        InStr: InStream;
+        TempBlob: codeunit "Temp Blob";
+        Filename: text;
+        ZipFilename: text;
+        recXMLBuffer: Record "XML Buffer";
+        DataCompression: Codeunit "Data Compression";
+    begin        
+        //Directly saving an xmldoc would produce an xml document without line breaks or intendation (as of BC23)
+        TempBlob.CreateOutStream(OutStr, TextEncoding::UTF8);
+        XmlDoc.WriteTo(XmlWriteOptions, OutStr);
+
+        //Beautify xml-file with XMLBuffer-Trick (line breaks, spaces):
+        TempBlob.CreateInStream(InStr);
+        recXMLBuffer.LoadFromStream(InStr);
+        recXMLBuffer.Save(tempBlob);
+        //end beautify
+
+        //Browsers sometimes don't like xml, so serve as zip: 
+        FileName := 'myXML.xml';
+        TempBlob.CreateInStream(InStr);  
+        DataCompression.CreateZipArchive();
+        DataCompression.AddEntry(InStr, FileName);
+        TempBlob.CreateOutStream(OutStr);
+        DataCompression.SaveZipArchive(OutStr);
+        TempBlob.CreateInStream(InStr);
+        ZipFileName := strsubstno('myXML_%1.zip', Format(CurrentDateTime, 0, '<Year4><Month,2><Day,2>_<Hours24><Minutes,2><Seconds,2>'));
+        DownloadFromStream(InStr, '', '', '', ZipFileName);
+    end;
